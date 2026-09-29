@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="代購相機">
-<meta name="theme-color" content="#121110">
+<meta name="theme-color" content="#f6f4f0">
 <title>代購標價相機</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,7 +40,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 [hidden]{display:none!important}
 
 /* ---------- 設定頁 ---------- */
-#settings{overflow-y:auto;-webkit-overflow-scrolling:touch}
+#settings{overflow-y:auto;-webkit-overflow-scrolling:touch;
+  /* 設定頁用淺色：都是文字與數字，強光下比較好讀 */
+  --bg:#f6f4f0;--surface:#ffffff;--surface-2:#efebe5;--line:#e3ddd4;--fg:#1f1c19;--muted:#6e665c;--accent:#d93f31;
+  color-scheme:light;background:var(--bg);color:var(--fg)}
+#settings .card{box-shadow:0 1px 2px rgba(60,40,20,.05)}
+#settings .switch::after{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+#settings .switch{background:#d9d3ca}
+#settings .switch[aria-pressed="true"]{background:var(--accent)}
+#settings .seg button[aria-pressed="true"]{background:#fff;color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .set-wrap{width:100%;max-width:520px;margin:0 auto;padding:20px 16px 120px;display:flex;flex-direction:column;gap:22px}
 .brand{display:flex;align-items:center;gap:12px}
 .brand .tag{width:44px;height:44px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-weight:900;font-size:13px;line-height:1.05;text-align:center;color:var(--accent-ink);transform:rotate(-8deg);flex:none}
@@ -60,6 +68,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .field span{color:var(--muted);font-size:13px}
 .seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;flex:none}
 .seg button{padding:7px 12px;border-radius:8px;font-size:14px;color:var(--muted);white-space:nowrap}
+#c-tax button{padding:7px 9px}
 .seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:700}
 .switch{width:50px;height:30px;border-radius:15px;background:var(--surface-2);position:relative;flex:none;transition:background .2s}
 .switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
@@ -249,7 +258,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
     <button class="store-chip" id="store-chip" aria-label="切換本張是否顯示店名"></button>
-    <div class="seg" id="c-tax"><button data-v="10">10%</button><button data-v="8">食品8%</button></div>
+    <div class="seg" id="c-tax"><button data-v="10">10%</button><button data-v="8">食品8%</button><button data-v="0">免稅</button></div>
   </div>
 
   <div class="stage" id="stage">
@@ -403,7 +412,7 @@ $('s-showstore').onclick = e => { S.showStore = !S.showStore; e.currentTarget.se
 const R = { jpy:'', tax:S.tax, pick:S.lastPick, custom:null, showStore:S.showStore, stream:null, still:null, media:null, pad:'jpy', padBuf:'', blob:null, lock:null };
 const video = $('video'), still = $('still'), overlay = $('overlay'), box = $('box');
 
-function show(id){ ['settings','camera','preview'].forEach(s => $(s).hidden = s!==id); }
+function show(id){ ['settings','camera','preview'].forEach(s => $(s).hidden = s!==id); const m = document.querySelector('meta[name="theme-color"]'); if(m) m.content = id==='settings' ? '#f6f4f0' : '#000000'; }
 
 $('go-camera').onclick = () => { readSettings(); R.tax = S.tax; R.showStore = S.showStore; show('camera'); updateTopbar(); renderPanel(); startCamera(); if(!R.jpy) openPad('jpy'); };
 $('back-settings').onclick = () => { stopCamera(); closePad(); fillSettings(); show('settings'); };
@@ -476,7 +485,7 @@ function renderPad(){
   const v = Number(R.padBuf)||0;
   $('sheet-val').textContent = (R.pad==='jpy' ? '¥' : '$') + fmt(v);
   let sub = '';
-  if(R.pad==='jpy' && v){ const c = calc(v, R.tax); sub = `保命成本 NT$${fmt(c.cost)}（${R.tax}%${S.mode==='incl'?'，已含稅':'，未稅'}）`; }
+  if(R.pad==='jpy' && v){ const c = calc(v, R.tax); sub = `保命成本 NT$${fmt(c.cost)}（${R.tax===0?'免稅':R.tax+'%'}${S.mode==='incl'?'，已含稅':'，未稅'}）`; }
   if(R.pad==='twd' && v && Number(R.jpy)){ const c = calc(Number(R.jpy), R.tax); const p = c.profit(v); sub = `淨利約 ${p<0?'-':''}$${fmt(Math.abs(p))}` + (p<0 ? '（低於成本）' : ''); }
   $('sheet-sub').textContent = sub;
 }
