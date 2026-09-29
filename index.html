@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="代購相機">
+<meta name="theme-color" content="#121110">
+<title>代購標價相機</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+/* Layout: 三個全螢幕畫面（設定 → 相機 → 預覽），相機頁上方取景、下方操作盤，全部單手可按 */
+:root{
+  --bg:#121110;        /* 暗房底色 */
+  --surface:#1c1a18;   /* 操作盤 */
+  --surface-2:#27241f; /* 按鈕、輸入框 */
+  --line:#3a352f;
+  --fg:#f4f1ec;
+  --muted:#a0978c;
+  --accent:#e5483a;    /* 日本店頭價格貼紙紅 */
+  --accent-ink:#fff;
+  --ok:#6cc58f;
+  --bad:#ff7466;
+  --font-ui:"Noto Sans TC","PingFang TC","Heiti TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-num:"Barlow Semi Condensed","Noto Sans TC",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:15px;line-height:1.5;overflow:hidden;-webkit-user-select:none;user-select:none}
+input{-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+
+/* ---------- 設定頁 ---------- */
+#settings{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.set-wrap{width:100%;max-width:520px;margin:0 auto;padding:20px 16px 120px;display:flex;flex-direction:column;gap:22px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .tag{width:44px;height:44px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-weight:900;font-size:13px;line-height:1.05;text-align:center;color:var(--accent-ink);transform:rotate(-8deg);flex:none}
+.brand h1{margin:0;font-size:22px;font-weight:900;letter-spacing:.02em;text-wrap:balance}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+.group{display:flex;flex-direction:column;gap:12px}
+.group h2{margin:0;font-size:12px;letter-spacing:.14em;color:var(--muted);font-weight:500}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);min-height:56px}
+.row:last-child{border-bottom:0}
+.row label,.row .lbl{flex:1;min-width:0}
+.row small{display:block;color:var(--muted);font-size:12px;line-height:1.4}
+.field{display:flex;align-items:center;gap:6px;background:var(--surface-2);border-radius:10px;padding:0 10px;height:42px}
+.field input{background:none;border:0;color:var(--fg);font:600 18px/1 var(--font-num);width:84px;text-align:right;outline:none}
+.field input.wide{width:150px;font:500 16px/1 var(--font-ui);text-align:left}
+.field input.list{width:128px;font-size:16px}
+.field span{color:var(--muted);font-size:13px}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;flex:none}
+.seg button{padding:7px 12px;border-radius:8px;font-size:14px;color:var(--muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:700}
+.switch{width:50px;height:30px;border-radius:15px;background:var(--surface-2);position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.switch[aria-pressed="true"]{background:var(--accent)}
+.switch[aria-pressed="true"]::after{transform:translateX(20px);background:#fff}
+.example{background:var(--surface-2);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--muted);line-height:1.7}
+.example b{color:var(--fg);font-weight:700}
+.example .num{font-size:15px}
+.cta-bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.cta{display:block;width:100%;max-width:520px;margin:0 auto;height:56px;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-size:18px;font-weight:900;letter-spacing:.06em}
+
+/* ---------- 相機頁 ---------- */
+#camera{background:#000}
+.topbar{display:flex;align-items:center;gap:10px;padding:8px 12px;flex:none}
+.icon-btn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.08);flex:none}
+.icon-btn svg{width:22px;height:22px}
+.store-chip{flex:1;min-width:0;text-align:left;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.08);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-chip.off{color:var(--muted);text-decoration:line-through}
+.stage{flex:1;min-height:0;position:relative;display:grid;place-items:center;overflow:hidden}
+.box{position:relative;overflow:hidden;border-radius:6px;background:#0b0a09}
+.box video,.box img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block}
+.box canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.still-x{position:absolute;top:8px;right:8px;z-index:3;background:rgba(0,0,0,.55)}
+.hint{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:4px 10px;border-radius:20px;font-size:12px;color:#ddd;pointer-events:none;transition:opacity .6s;white-space:nowrap}
+.fallback{display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px 16px;text-align:center;color:var(--muted);max-width:340px}
+.fallback p{margin:0;font-size:14px}
+.btn{height:48px;padding:0 20px;border-radius:14px;background:var(--surface-2);font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+
+.panel{flex:none;background:var(--surface);border-radius:20px 20px 0 0;padding:12px 12px 10px;display:flex;flex-direction:column;gap:10px}
+.price-row{display:flex;align-items:stretch;gap:8px}
+.jpy{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;background:var(--surface-2);border-radius:14px;padding:6px 14px;text-align:left}
+.jpy .big{font:700 30px/1.1 var(--font-num);font-variant-numeric:tabular-nums}
+.jpy .big.empty{color:var(--muted);font-size:20px;font-family:var(--font-ui);font-weight:500}
+.jpy .meta{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jpy .meta b{color:var(--fg);font-weight:600}
+.custom{width:78px;border-radius:14px;background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--muted);flex:none;border:2px solid transparent}
+.custom .num{font-size:18px;font-weight:700;color:var(--fg)}
+.custom.sel{border-color:var(--accent);background:rgba(229,72,58,.14)}
+.chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.chips-label{grid-column:1/-1;font-size:11px;color:var(--muted);letter-spacing:.1em;margin:2px 0 -2px}
+.chip{background:var(--surface-2);border-radius:12px;padding:6px 2px 5px;display:flex;flex-direction:column;align-items:center;gap:0;border:2px solid transparent;min-width:0}
+.chip .k{font-size:11px;color:var(--muted);line-height:1.3}
+.chip .p{font:700 19px/1.15 var(--font-num);font-variant-numeric:tabular-nums}
+.chip .n{font:500 11px/1.3 var(--font-num);color:var(--ok);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip.loss .n{color:var(--bad)}
+.chip.loss .p{color:var(--bad)}
+.chip.sel{border-color:var(--accent);background:rgba(229,72,58,.14)}
+.chip:disabled{opacity:.45}
+.shoot-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding-top:2px}
+.shoot-row .left{justify-self:start}
+.shoot-row .right{justify-self:end}
+.shutter{width:72px;height:72px;border-radius:50%;border:4px solid #fff;display:grid;place-items:center;background:transparent}
+.shutter::after{content:"";width:56px;height:56px;border-radius:50%;background:#fff;transition:transform .1s}
+.shutter:active::after{transform:scale(.88)}
+.shutter.dim{opacity:.4}
+.mini{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);padding:4px 8px}
+.mini svg{width:26px;height:26px;color:var(--fg)}
+
+/* 數字鍵盤 */
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;padding:14px 12px calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -12px 40px rgba(0,0,0,.5);z-index:10;display:flex;flex-direction:column;gap:10px;transform:translateY(0);transition:transform .22s ease}
+.sheet.closed{transform:translateY(110%);pointer-events:none}
+.sheet-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px}
+.sheet-head .t{font-size:13px;color:var(--muted)}
+.sheet-head .v{font:700 36px/1 var(--font-num);font-variant-numeric:tabular-nums}
+.sheet-sub{font-size:12px;color:var(--muted);padding:0 4px;min-height:18px}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.keys button{height:52px;border-radius:12px;background:var(--surface-2);font:600 24px/1 var(--font-num)}
+.keys button:active{background:var(--line)}
+.keys .fn{font:500 16px/1 var(--font-ui);color:var(--muted)}
+.keys .done{background:var(--accent);color:var(--accent-ink);font:900 17px/1 var(--font-ui);grid-column:span 2}
+
+/* ---------- 預覽頁 ---------- */
+#preview{background:#000}
+.pv-stage{flex:1;min-height:0;display:grid;place-items:center;padding:8px 12px}
+.pv-stage img{max-width:100%;max-height:100%;border-radius:6px;display:block;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
+.pv-actions{flex:none;display:flex;flex-direction:column;gap:8px;padding:10px 16px 14px;background:var(--surface);border-radius:20px 20px 0 0}
+.pv-actions .line{height:58px;border-radius:16px;background:#06c755;color:#fff;font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:.04em}
+.pv-actions .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pv-note{font-size:12px;color:var(--muted);text-align:center;margin:0}
+
+.toast{position:fixed;left:50%;bottom:calc(40% + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(20,20,20,.92);color:#fff;border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:14px;z-index:50;opacity:0;transition:opacity .25s;pointer-events:none;max-width:86vw;text-align:center}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-height:680px){
+  .shutter{width:62px;height:62px}.shutter::after{width:46px;height:46px}
+  .chip .p{font-size:17px}.jpy .big{font-size:26px}
+  .keys button{height:46px}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= 設定頁 ================= -->
+<section id="settings" class="screen">
+  <div class="set-wrap">
+    <div class="brand">
+      <div class="tag" aria-hidden="true">代購<br>標價</div>
+      <div>
+        <h1>代購標價相機</h1>
+        <p>拍商品，同時打上台幣售價，一鍵傳 LINE</p>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>標籤</h2>
+      <div class="card">
+        <div class="row">
+          <label for="s-store">店名／品牌<small>標籤第 1 行</small></label>
+          <div class="field"><input id="s-store" class="wide" type="text" placeholder="例：東京牛奶公司" maxlength="20"></div>
+        </div>
+        <div class="row">
+          <div class="lbl">顯示店名<small>關閉時標籤只剩價格</small></div>
+          <button id="s-showstore" class="switch" aria-pressed="true" aria-label="顯示店名"></button>
+        </div>
+        <div class="row">
+          <div class="lbl">標籤大小</div>
+          <div class="seg" id="s-size">
+            <button data-v="s">小</button><button data-v="m">中</button><button data-v="l">大</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>保命成本</h2>
+      <div class="card">
+        <div class="row">
+          <label for="s-rate">保命匯率<small>本趟實際換匯成本</small></label>
+          <div class="field"><span>JPY</span><input id="s-rate" type="text" inputmode="decimal"></div>
+        </div>
+        <div class="row">
+          <label for="s-ship">每件運費</label>
+          <div class="field"><span>NT$</span><input id="s-ship" type="text" inputmode="numeric"></div>
+        </div>
+        <div class="row">
+          <div class="lbl">日本消費稅<small>拍照時也可逐張切換</small></div>
+          <div class="seg" id="s-tax">
+            <button data-v="10">一般 10%</button><button data-v="8">食品 8%</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">輸入的日幣是</div>
+          <div class="seg" id="s-mode">
+            <button data-v="incl">含稅價</button><button data-v="excl">未稅價</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>快速定價按鈕（自動無條件進位到 10 元）</h2>
+      <div class="card">
+        <div class="row">
+          <label for="s-markups">加成定價<small>保命成本 ×（1＋加成）</small></label>
+          <div class="field"><input id="s-markups" class="list" type="text" inputmode="decimal"><span>%</span></div>
+        </div>
+        <div class="row">
+          <label for="s-rates">匯率定價<small>含稅日幣 × 匯率</small></label>
+          <div class="field"><input id="s-rates" class="list" type="text" inputmode="decimal"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>淨利試算（只有你看得到，不會出現在照片上）</h2>
+      <div class="card">
+        <div class="row">
+          <label for="s-vat">銷項營業稅</label>
+          <div class="field"><input id="s-vat" type="text" inputmode="decimal"><span>%</span></div>
+        </div>
+        <div class="row">
+          <label for="s-fee">金流／刷卡手續費</label>
+          <div class="field"><input id="s-fee" type="text" inputmode="decimal"><span>%</span></div>
+        </div>
+      </div>
+      <div class="example" id="example"></div>
+    </div>
+  </div>
+  <div class="cta-bar"><button class="cta" id="go-camera">開啟相機</button></div>
+</section>
+
+<!-- ================= 相機頁 ================= -->
+<section id="camera" class="screen" hidden>
+  <div class="topbar">
+    <button class="icon-btn" id="back-settings" aria-label="回到設定">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+    <button class="store-chip" id="store-chip" aria-label="切換本張是否顯示店名"></button>
+    <div class="seg" id="c-tax"><button data-v="10">10%</button><button data-v="8">食品8%</button></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="box" id="box" hidden>
+      <video id="video" playsinline muted autoplay></video>
+      <img id="still" alt="" hidden>
+      <canvas id="overlay"></canvas>
+      <button class="icon-btn still-x" id="still-x" aria-label="回到即時相機" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <div class="hint" id="hint">拖曳標籤可以移動位置</div>
+    </div>
+    <div class="fallback" id="fallback" hidden>
+      <p id="fallback-msg">正在開啟相機…</p>
+      <button class="btn primary" id="fb-shoot">用手機相機拍照</button>
+      <button class="btn" id="fb-album">從相簿選照片</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="price-row">
+      <button class="jpy" id="jpy-btn" aria-label="輸入日幣價格">
+        <span class="big empty" id="jpy-big">輸入日幣價格</span>
+        <span class="meta" id="jpy-meta">保命成本會自動算出來</span>
+      </button>
+      <button class="custom" id="custom-btn"><span>自訂售價</span><span class="num" id="custom-val">—</span></button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="shoot-row">
+      <button class="mini left" id="album-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg>
+        相簿
+      </button>
+      <button class="shutter" id="shutter" aria-label="拍照"></button>
+      <button class="mini right" id="size-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7V5h10v2M9 5v14M7 19h4M14 12v-1.5h6V12M17 10.5V19M15.5 19h3"/></svg>
+        <span id="size-lbl">標籤 中</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="sheet closed" id="sheet" aria-hidden="true">
+    <div class="sheet-head"><span class="t" id="sheet-title">輸入日幣價格</span><span class="v" id="sheet-val">¥0</span></div>
+    <div class="sheet-sub" id="sheet-sub"></div>
+    <div class="keys" id="keys">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k="00">00</button><button data-k="0">0</button><button data-k="del" class="fn" aria-label="刪除">⌫</button>
+      <button data-k="clr" class="fn">清除</button><button data-k="ok" class="done">完成</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 預覽頁 ================= -->
+<section id="preview" class="screen" hidden>
+  <div class="pv-stage"><img id="result" alt="加上價格標籤的商品照片"></div>
+  <div class="pv-actions">
+    <button class="line" id="share-btn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg>
+      傳到 LINE
+    </button>
+    <div class="pair">
+      <button class="btn" id="save-btn">存到手機</button>
+      <button class="btn" id="retake-btn">重拍</button>
+    </div>
+    <p class="pv-note" id="pv-note">按「傳到 LINE」後，在分享選單選 LINE，再選聊天室</p>
+  </div>
+</section>
+
+<input type="file" id="file-cam" accept="image/*" capture="environment" hidden>
+<input type="file" id="file-album" accept="image/*" hidden>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY = 'jc-price-camera-v1';
+const DEFAULTS = {
+  store:'東京牛奶公司', showStore:true, size:'m',
+  bottomRate:0.215, ship:100, tax:10, mode:'incl',
+  markups:[15,25,35,50], rates:[0.26,0.27,0.28,0.29],
+  vat:5, fee:2.5, lastPick:'m25', pos:{x:.5,y:.8}
+};
+let S = load();
+function load(){
+  try{ const raw = localStorage.getItem(KEY); if(raw) return Object.assign({}, DEFAULTS, JSON.parse(raw)); }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULTS));
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ---------- 定價 ---------- */
+const ceil10 = x => Math.ceil(Math.round(x*1000)/1000/10)*10;
+const fmt = n => Math.round(n).toLocaleString('en-US');
+function calc(jpy, tax){
+  const incl = S.mode==='incl' ? jpy : jpy*(1+tax/100);
+  const cost = incl*S.bottomRate + S.ship;
+  const profit = P => P - cost - P/(1+S.vat/100)*(S.vat/100) - P*S.fee/100;
+  const opts = [];
+  S.markups.forEach(m => { const p = ceil10(cost*(1+m/100)); opts.push({key:'m'+m, group:'m', label:'+'+m+'%', price:p, profit:profit(p)}); });
+  S.rates.forEach(r => { const p = ceil10(incl*r); opts.push({key:'r'+r, group:'r', label:'× '+r, price:p, profit:profit(p)}); });
+  return {incl, cost, opts, profit};
+}
+
+/* ---------- 設定頁 ---------- */
+function parseList(str){ return str.split(/[,，、\s]+/).map(Number).filter(n => isFinite(n) && n>0); }
+function segSet(el, v){ el.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v===String(v)))); }
+function fillSettings(){
+  $('s-store').value = S.store;
+  $('s-showstore').setAttribute('aria-pressed', String(S.showStore));
+  $('s-rate').value = S.bottomRate;
+  $('s-ship').value = S.ship;
+  $('s-markups').value = S.markups.join(', ');
+  $('s-rates').value = S.rates.join(', ');
+  $('s-vat').value = S.vat;
+  $('s-fee').value = S.fee;
+  segSet($('s-size'), S.size); segSet($('s-tax'), S.tax); segSet($('s-mode'), S.mode);
+  renderExample();
+}
+function readSettings(){
+  S.store = $('s-store').value.trim();
+  const n = (id, d) => { const v = parseFloat($(id).value); return isFinite(v) && v>=0 ? v : d; };
+  S.bottomRate = n('s-rate', DEFAULTS.bottomRate);
+  S.ship = n('s-ship', DEFAULTS.ship);
+  S.vat = n('s-vat', DEFAULTS.vat);
+  S.fee = n('s-fee', DEFAULTS.fee);
+  const m = parseList($('s-markups').value); if(m.length) S.markups = m.slice(0,4);
+  const r = parseList($('s-rates').value); if(r.length) S.rates = r.slice(0,4);
+  save(); renderExample();
+}
+function renderExample(){
+  const j = 1500, c = calc(j, S.tax);
+  const best = c.opts.find(o => o.key===S.lastPick) || c.opts[0];
+  $('example').innerHTML =
+    `試算：日幣 <b class="num">¥${fmt(j)}</b>（${S.mode==='incl'?'含稅':'未稅，含 '+S.tax+'% 稅為 ¥'+fmt(c.incl)}）<br>`+
+    `保命成本 = ${fmt(c.incl)} × ${S.bottomRate} ＋ ${S.ship} = <b class="num">NT$${fmt(c.cost)}</b><br>`+
+    (best ? `選「${best.label}」→ 售價 <b class="num">$${fmt(best.price)}</b>，淨利約 <b class="num">$${fmt(best.profit)}</b>` : '');
+}
+['s-store','s-rate','s-ship','s-markups','s-rates','s-vat','s-fee'].forEach(id => $(id).addEventListener('input', readSettings));
+$('s-showstore').onclick = e => { S.showStore = !S.showStore; e.currentTarget.setAttribute('aria-pressed', String(S.showStore)); save(); };
+[['s-size','size'],['s-tax','tax'],['s-mode','mode']].forEach(([id,k]) => {
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    S[k] = k==='tax' ? Number(b.dataset.v) : b.dataset.v;
+    segSet($(id), S[k]); save(); renderExample();
+  });
+});
+
+/* ---------- 相機頁狀態 ---------- */
+const R = { jpy:'', tax:S.tax, pick:S.lastPick, custom:null, showStore:S.showStore, stream:null, still:null, media:null, pad:'jpy', padBuf:'', blob:null, lock:null };
+const video = $('video'), still = $('still'), overlay = $('overlay'), box = $('box');
+
+function show(id){ ['settings','camera','preview'].forEach(s => $(s).hidden = s!==id); }
+
+$('go-camera').onclick = () => { readSettings(); R.tax = S.tax; R.showStore = S.showStore; show('camera'); updateTopbar(); renderPanel(); startCamera(); if(!R.jpy) openPad('jpy'); };
+$('back-settings').onclick = () => { stopCamera(); closePad(); fillSettings(); show('settings'); };
+
+function updateTopbar(){
+  const chip = $('store-chip');
+  chip.textContent = S.store || '（未設定店名）';
+  chip.classList.toggle('off', !R.showStore || !S.store);
+  segSet($('c-tax'), R.tax);
+  $('size-lbl').textContent = '標籤 ' + ({s:'小',m:'中',l:'大'})[S.size];
+}
+$('store-chip').onclick = () => { if(!S.store){ toast('請先到設定填店名'); return; } R.showStore = !R.showStore; updateTopbar(); drawOverlay(); toast(R.showStore ? '這張會顯示店名' : '這張不顯示店名'); };
+$('c-tax').addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; R.tax = Number(b.dataset.v); updateTopbar(); renderPanel(); });
+$('size-btn').onclick = () => { S.size = ({s:'m',m:'l',l:'s'})[S.size]; save(); updateTopbar(); drawOverlay(); };
+
+function currentPrice(){
+  if(R.pick==='custom') return R.custom;
+  const j = Number(R.jpy); if(!j) return null;
+  const o = calc(j, R.tax).opts.find(o => o.key===R.pick);
+  return o ? o.price : null;
+}
+
+function renderPanel(){
+  const j = Number(R.jpy);
+  const c = j ? calc(j, R.tax) : null;
+  const big = $('jpy-big');
+  if(j){ big.textContent = '¥' + fmt(j); big.classList.remove('empty'); }
+  else { big.textContent = '輸入日幣價格'; big.classList.add('empty'); }
+  $('jpy-meta').innerHTML = c
+    ? `${S.mode==='incl'?'':'含稅 ¥'+fmt(c.incl)+' · '}保命成本 <b class="num">NT$${fmt(c.cost)}</b>`
+    : '保命成本會自動算出來';
+  if(c && R.pick!=='custom' && !c.opts.some(o => o.key===R.pick)) R.pick = c.opts[0].key;
+  const wrap = $('chips'); wrap.innerHTML = '';
+  const groups = [['m','加成定價'],['r','匯率定價']];
+  const base = c ? c.opts : calc(0, R.tax).opts;
+  groups.forEach(([g, name]) => {
+    const lab = document.createElement('div'); lab.className = 'chips-label'; lab.textContent = name; wrap.appendChild(lab);
+    base.filter(o => o.group===g).forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.dataset.key = o.key; b.disabled = !c;
+      if(c && R.pick===o.key) b.classList.add('sel');
+      if(c && o.profit < 0) b.classList.add('loss');
+      b.innerHTML = `<span class="k">${o.label}</span><span class="p">${c ? '$'+fmt(o.price) : '—'}</span><span class="n">${c ? '淨利 '+(o.profit<0?'-':'')+'$'+fmt(Math.abs(o.profit)) : '&nbsp;'}</span>`;
+      wrap.appendChild(b);
+    });
+  });
+  const cb = $('custom-btn');
+  cb.classList.toggle('sel', R.pick==='custom');
+  $('custom-val').textContent = R.pick==='custom' && R.custom ? '$'+fmt(R.custom) : '—';
+  $('shutter').classList.toggle('dim', !currentPrice());
+  drawOverlay();
+}
+$('chips').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if(!b || b.disabled) return;
+  R.pick = b.dataset.key; S.lastPick = R.pick; save(); renderPanel();
+});
+$('jpy-btn').onclick = () => openPad('jpy');
+$('custom-btn').onclick = () => openPad('twd');
+
+/* ---------- 數字鍵盤 ---------- */
+function openPad(mode){
+  R.pad = mode;
+  R.padBuf = mode==='jpy' ? String(R.jpy||'') : String(R.pick==='custom' && R.custom ? R.custom : (currentPrice()||''));
+  $('sheet-title').textContent = mode==='jpy' ? '輸入日幣價格' : '自訂台幣售價';
+  renderPad();
+  $('sheet').classList.remove('closed'); $('sheet').setAttribute('aria-hidden','false');
+}
+function closePad(){ $('sheet').classList.add('closed'); $('sheet').setAttribute('aria-hidden','true'); }
+function renderPad(){
+  const v = Number(R.padBuf)||0;
+  $('sheet-val').textContent = (R.pad==='jpy' ? '¥' : '$') + fmt(v);
+  let sub = '';
+  if(R.pad==='jpy' && v){ const c = calc(v, R.tax); sub = `保命成本 NT$${fmt(c.cost)}（${R.tax}%${S.mode==='incl'?'，已含稅':'，未稅'}）`; }
+  if(R.pad==='twd' && v && Number(R.jpy)){ const c = calc(Number(R.jpy), R.tax); const p = c.profit(v); sub = `淨利約 ${p<0?'-':''}$${fmt(Math.abs(p))}` + (p<0 ? '（低於成本）' : ''); }
+  $('sheet-sub').textContent = sub;
+}
+$('keys').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  const k = b.dataset.k;
+  if(k==='del') R.padBuf = R.padBuf.slice(0,-1);
+  else if(k==='clr') R.padBuf = '';
+  else if(k==='ok'){
+    const v = Number(R.padBuf)||0;
+    if(R.pad==='jpy'){ R.jpy = v ? String(v) : ''; if(R.pick==='custom') R.pick = S.lastPick; }
+    else { if(v){ R.custom = v; R.pick = 'custom'; } else if(R.pick==='custom'){ R.pick = S.lastPick; R.custom = null; } }
+    closePad(); renderPanel(); return;
+  }
+  else { if(R.padBuf.length < 7) R.padBuf = (R.padBuf==='0' ? '' : R.padBuf) + k; R.padBuf = String(Number(R.padBuf)||'') ; }
+  renderPad();
+});
+
+/* ---------- 相機 ---------- */
+async function startCamera(){
+  showFallback(false);
+  if(R.still){ layout(); return; }
+  if(R.stream && R.stream.active){ layout(); return; }
+  const md = navigator.mediaDevices;
+  if(!window.isSecureContext || !md || !md.getUserMedia){
+    showFallback(true, window.isSecureContext ? '這個瀏覽器不支援即時相機，可以改用手機相機拍照。' : '即時相機需要 https 網址才能開啟。現在可以先用手機相機拍照，再自動加上標籤。');
+    return;
+  }
+  try{
+    R.stream = await md.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1440}}});
+    video.srcObject = R.stream;
+    await video.play().catch(()=>{});
+    if(video.readyState < 1) await new Promise(r => video.addEventListener('loadedmetadata', r, {once:true}));
+    R.media = 'video';
+    video.hidden = false; still.hidden = true; $('still-x').hidden = true;
+    layout(); flashHint();
+    try{ R.lock = await navigator.wakeLock?.request('screen'); }catch(e){}
+  }catch(err){
+    const msg = err && err.name==='NotAllowedError' ? '相機權限被拒絕。請到瀏覽器設定允許相機，或先用手機相機拍照。' : '無法開啟相機，可以改用手機相機拍照。';
+    showFallback(true, msg);
+  }
+}
+function stopCamera(){
+  if(R.stream){ R.stream.getTracks().forEach(t => t.stop()); R.stream = null; }
+  video.srcObject = null;
+  try{ R.lock && R.lock.release(); }catch(e){} R.lock = null;
+}
+function showFallback(on, msg){
+  $('fallback').hidden = !on;
+  if(on){ box.hidden = true; $('fallback-msg').textContent = msg || ''; }
+}
+function mediaSize(){
+  if(R.media==='still' && R.still) return [R.still.width, R.still.height];
+  if(video.videoWidth) return [video.videoWidth, video.videoHeight];
+  return [3,4];
+}
+function layout(){
+  if(R.media!=='still' && !(R.stream && video.videoWidth)) return;
+  box.hidden = false; $('fallback').hidden = true;
+  const st = $('stage').getBoundingClientRect();
+  const [mw, mh] = mediaSize(); const a = mw/mh;
+  let w = Math.min(st.width - 8, (st.height - 8)*a); let h = w/a;
+  box.style.width = w+'px'; box.style.height = h+'px';
+  const dpr = Math.min(window.devicePixelRatio||1, 3);
+  overlay.width = Math.round(w*dpr); overlay.height = Math.round(h*dpr);
+  drawOverlay();
+}
+window.addEventListener('resize', () => { if(!$('camera').hidden) layout(); });
+video.addEventListener('resize', () => layout());
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState==='visible' && !$('camera').hidden && R.media==='video' && !(R.stream && R.stream.active)){ R.stream = null; startCamera(); }
+});
+function flashHint(){ const h = $('hint'); h.style.opacity = 1; clearTimeout(flashHint.t); flashHint.t = setTimeout(() => h.style.opacity = 0, 2600); }
+
+/* ---------- 從相機 App／相簿載入照片 ---------- */
+$('fb-shoot').onclick = () => $('file-cam').click();
+$('fb-album').onclick = $('album-btn').onclick = () => $('file-album').click();
+['file-cam','file-album'].forEach(id => $(id).addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  try{
+    const bmp = await loadImage(f);
+    R.still = bmp; R.media = 'still';
+    still.src = bmp.url; still.hidden = false; video.hidden = true;
+    $('still-x').hidden = false; box.hidden = false; $('fallback').hidden = true;
+    layout(); flashHint();
+    if(!R.jpy) openPad('jpy');
+  }catch(err){ toast('這張照片讀不到，請換一張'); }
+}));
+function loadImage(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => res({img, url, width:img.naturalWidth, height:img.naturalHeight});
+    img.onerror = rej; img.src = url;
+  });
+}
+$('still-x').onclick = () => clearStill(true);
+function clearStill(restart){
+  if(R.still){ URL.revokeObjectURL(R.still.url); R.still = null; }
+  still.hidden = true; $('still-x').hidden = true;
+  if(R.stream && R.stream.active){ R.media = 'video'; video.hidden = false; layout(); }
+  else if(restart){ R.media = null; startCamera(); }
+  else { R.media = null; }
+}
+
+/* ---------- 標籤繪製（預覽與成品共用，所見即所得） ---------- */
+const SIZE = {s:.038, m:.048, l:.062};
+const LABEL_FONT = '"Noto Sans TC","PingFang TC","Heiti TC","Microsoft JhengHei",sans-serif';
+function labelLines(){
+  const p = currentPrice();
+  const lines = [];
+  if(R.showStore && S.store) lines.push({text:S.store, scale:1});
+  lines.push({text: p ? '$'+fmt(p) : '$—', scale:1.12});
+  return lines;
+}
+function rr(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  if(ctx.roundRect){ ctx.roundRect(x, y, w, h, r); return; }
+  ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
+}
+function drawLabel(ctx, W, H, lines, pos){
+  const base = W * SIZE[S.size||'m'];
+  const items = lines.map(l => {
+    const f = base*l.scale; ctx.font = `900 ${f}px ${LABEL_FONT}`;
+    const tw = ctx.measureText(l.text).width;
+    return {...l, f, w: tw + f*.8, h: f*1.42};
+  });
+  const gap = base*.14;
+  const totalH = items.reduce((s,i) => s+i.h, 0) + gap*(items.length-1);
+  const maxW = Math.max(...items.map(i => i.w));
+  const m = W*.02;
+  let cx = pos.x*W, top = pos.y*H - totalH/2;
+  cx = Math.min(Math.max(cx, maxW/2 + m), W - maxW/2 - m);
+  top = Math.min(Math.max(top, m), H - totalH - m);
+  let y = top;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  items.forEach(i => {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.18)'; ctx.shadowBlur = i.f*.25; ctx.shadowOffsetY = i.f*.05;
+    ctx.fillStyle = '#ffffff'; rr(ctx, cx - i.w/2, y, i.w, i.h, i.f*.2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#111111'; ctx.font = `900 ${i.f}px ${LABEL_FONT}`;
+    ctx.fillText(i.text, cx, y + i.h/2 + i.f*.04);
+    y += i.h + gap;
+  });
+  return {x: cx - maxW/2, y: top, w: maxW, h: totalH};
+}
+let hit = null;
+function drawOverlay(){
+  if(box.hidden || !overlay.width) return;
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  const b = drawLabel(ctx, overlay.width, overlay.height, labelLines(), S.pos);
+  const k = overlay.getBoundingClientRect().width / overlay.width;
+  hit = {x:b.x*k, y:b.y*k, w:b.w*k, h:b.h*k};
+}
+if(document.fonts){ document.fonts.load(`900 40px "Noto Sans TC"`, '東京牛奶公司$0123456789').then(drawOverlay).catch(()=>{}); document.fonts.ready.then(drawOverlay); }
+
+/* 拖曳標籤 */
+let drag = null;
+overlay.addEventListener('pointerdown', e => {
+  const r = overlay.getBoundingClientRect(); const px = e.clientX - r.left, py = e.clientY - r.top;
+  const pad = 24;
+  if(hit && px > hit.x-pad && px < hit.x+hit.w+pad && py > hit.y-pad && py < hit.y+hit.h+pad){
+    drag = {dx: px - (hit.x+hit.w/2), dy: py - (hit.y+hit.h/2), r};
+    overlay.setPointerCapture(e.pointerId);
+  }
+});
+overlay.addEventListener('pointermove', e => {
+  if(!drag) return;
+  const r = drag.r;
+  S.pos = {x: Math.min(Math.max((e.clientX - r.left - drag.dx)/r.width, 0), 1), y: Math.min(Math.max((e.clientY - r.top - drag.dy)/r.height, 0), 1)};
+  drawOverlay();
+});
+['pointerup','pointercancel'].forEach(t => overlay.addEventListener(t, () => { if(drag){ drag = null; save(); } }));
+
+/* ---------- 拍照合成 ---------- */
+$('shutter').onclick = async () => {
+  const price = currentPrice();
+  if(!price){ toast(Number(R.jpy) ? '請選一個售價' : '先輸入日幣價格'); if(!Number(R.jpy)) openPad('jpy'); return; }
+  let src, W, H;
+  if(R.media==='still' && R.still){
+    src = R.still.img; const sc = Math.min(1, 2400/Math.max(R.still.width, R.still.height));
+    W = Math.round(R.still.width*sc); H = Math.round(R.still.height*sc);
+  } else if(R.media==='video' && video.videoWidth){
+    src = video; W = video.videoWidth; H = video.videoHeight;
+  } else { $('file-cam').click(); return; }
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(src, 0, 0, W, H);
+  if(document.fonts) await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1200))]);
+  drawLabel(ctx, W, H, labelLines(), S.pos);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .9));
+  if(!blob){ toast('照片合成失敗，請再拍一次'); return; }
+  const stamp = new Date(); const pad2 = n => String(n).padStart(2,'0');
+  const name = `${(R.showStore && S.store) ? S.store+'_' : ''}${price}_${pad2(stamp.getMonth()+1)}${pad2(stamp.getDate())}-${pad2(stamp.getHours())}${pad2(stamp.getMinutes())}${pad2(stamp.getSeconds())}.jpg`.replace(/[\\/:*?"<>|\s]/g,'');
+  R.blob = new File([blob], name, {type:'image/jpeg'});
+  if(R.resultUrl) URL.revokeObjectURL(R.resultUrl);
+  R.resultUrl = URL.createObjectURL(blob);
+  $('result').src = R.resultUrl;
+  const canShare = !!(navigator.canShare && navigator.canShare({files:[R.blob]}));
+  $('share-btn').hidden = !canShare;
+  $('pv-note').textContent = canShare ? '按「傳到 LINE」後，在分享選單選 LINE，再選聊天室' : '這個瀏覽器不能直接分享圖片：可以長按照片儲存，或按「存到手機」';
+  closePad(); show('preview');
+};
+
+$('share-btn').onclick = async () => {
+  if(!R.blob) return;
+  try{
+    await navigator.share({files:[R.blob]});
+    nextShot('已送出，拍下一個商品');
+  }catch(err){
+    if(err && err.name==='AbortError') return;
+    toast('分享沒有成功，請改用「存到手機」');
+  }
+};
+$('save-btn').onclick = () => {
+  if(!R.blob) return;
+  const a = document.createElement('a'); a.href = R.resultUrl; a.download = R.blob.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('已存檔');
+};
+$('retake-btn').onclick = () => { show('camera'); layout(); };
+function nextShot(msg){
+  R.jpy = ''; R.custom = null; if(R.pick==='custom') R.pick = S.lastPick; R.showStore = S.showStore;
+  if(R.media==='still') clearStill(false);
+  show('camera'); updateTopbar(); renderPanel();
+  if(!(R.stream && R.stream.active)) startCamera(); else layout();
+  openPad('jpy'); toast(msg);
+}
+
+/* ---------- 小工具 ---------- */
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 1800); }
+
+fillSettings();
+})();
+</script>
+</body>
+</html>
